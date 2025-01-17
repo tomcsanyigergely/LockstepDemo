@@ -85,5 +85,5 @@ inline FVec RotatePlus90(FVec V)
 
 inline FVec RotateMinus90(FVec V)
 {
-	return FVec{ -V.X, -V.Y };
+	return FVec{ V.X, -V.Y };
 }

@@ -14,6 +14,9 @@ struct FLockstepMoveCommand
 
 	UPROPERTY()
 	uint8 PlayerId;
+
+	UPROPERTY()
+	TArray<uint16> Units;
 	
 	UPROPERTY()
 	int X;
@@ -33,10 +36,10 @@ class LOCKSTEPDEMO_API ALockstepGameStateBase : public AGameStateBase
 	FLockstepSimulation Simulation;
 
 	UPROPERTY(EditDefaultsOnly)
-	TSubclassOf<AActor> UnitActorClass;
+	TSubclassOf<class ALockstepUnitActor> UnitActorClass;
 
 	UPROPERTY()
-	TArray<AActor*> UnitActors;
+	TArray<ALockstepUnitActor*> UnitActors;
 
     bool SimulationInitialized = false;
 	bool BeginPlayCalled = false;

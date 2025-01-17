@@ -32,7 +32,7 @@ public:
 
     FVector2D GetUnitPosition(int UnitID) const;
 
-    void ProcessMoveCommand(int X, int Y);
+    void ProcessMoveCommand(const struct FLockstepMoveCommand& MoveCommand);
 
 private:
     static fixed CalculateSweep(FVec Dir, fixed Distance, FVec P0, fixed R0, FVec P1, fixed R1);

@@ -14,14 +14,25 @@ class LOCKSTEPDEMO_API ALockstepPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 
+	TArray<uint16> SelectedUnits;
+
+	bool bIsSelecting = false;
+	FVector2D MouseSelectStartScreenPosition;
+
 public:
 	virtual void SetupInputComponent() override;
 	
 	virtual void BeginPlay() override;
 
 	UFUNCTION()
+	void OnLeftMouseButtonPressed();
+
+	UFUNCTION()
+	void OnLeftMouseButtonReleased();
+
+	UFUNCTION()
 	void OnRightMouseButtonPressed();
 
 	UFUNCTION(Server, Reliable)
-	void MoveCommand(int X, int Y);
+	void MoveCommand(int X, int Y, const TArray<uint16>& Units);
 };

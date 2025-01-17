@@ -1,5 +1,7 @@
 #include "LockstepSimulation.h"
 
+#include "LockstepGameStateBase.h"
+
 void FLockstepSimulation::Initialize()
 {
 	for(int i = 0; i < MAX_UNIT_COUNT; i++)
@@ -14,97 +16,102 @@ void FLockstepSimulation::Initialize()
 
 void FLockstepSimulation::Tick()
 {
-	if (Units[0].Moving)
+	for (int k = 0; k < MAX_UNIT_COUNT; k++)
 	{
-		fixed DeltaTime = 1_fx / 20_fx;
-	
-		fixed MoveSpeed = 100_fx;
-
-		FVec TargetPosition = Units[0].TargetPosition;
-
-		TArray<int> NearbyUnits;
-	
-		for(int i = 1; i < MAX_UNIT_COUNT; i++)
+		FUnit& CurrentUnit = Units[k];
+		
+		if (CurrentUnit.Moving)
 		{
-			FVec DiffPosition = Units[i].Position - Units[0].Position;
+			fixed DeltaTime = 1_fx / 20_fx;
+	
+			fixed MoveSpeed = 100_fx;
 
-			fixed NearbyDistance = Units[i].Radius + Units[0].Radius + MoveSpeed * DeltaTime;
+			FVec TargetPosition = CurrentUnit.TargetPosition;
 
-			if (fpm::abs(DiffPosition.X) <= NearbyDistance && fpm::abs(DiffPosition.Y) <= NearbyDistance)
-			{
-				NearbyUnits.Add(i);
-				UE_LOG(LogTemp, Warning, TEXT("Found nearby unit"))
-			}
-		}
-
-		fixed RemainingTime = DeltaTime;
-
-		int PreviousSweepHitUnit = -1;
-		int Iterations = 0;
-
-		while (RemainingTime > 0_fx && Iterations < 2)
-		{
-			Iterations++;
+			TArray<int> NearbyUnits;
 		
-			FVec TargetDifference = TargetPosition - Units[0].Position;
-
-			if (length(TargetDifference) <= 10_fx)
+			for(int i = 0; i < MAX_UNIT_COUNT; i++)
 			{
-				Units[0].Moving = false;
-				break;
-			}
-		
-			FVec TargetDirection = normalize(TargetDifference);
-
-			UE_LOG(LogTemp, Warning, TEXT("TargetDir: %f %f"), static_cast<float>(TargetDirection.X), static_cast<float>(TargetDirection.Y))
-
-			if (PreviousSweepHitUnit != -1)
-			{
-				FVec PreviousSweepHitUnitDirection = normalize(Units[PreviousSweepHitUnit].Position - Units[0].Position);
-				fixed PreviousSweepHitUnitDirectionPhi = atan2(PreviousSweepHitUnitDirection.Y, PreviousSweepHitUnitDirection.X);
-
-				if ((TargetDirection | PreviousSweepHitUnitDirection) > 0_fx)
-				{				
-					if ((TargetDirection | RotatePlus90(PreviousSweepHitUnitDirection)) > 0_fx)
-					{
-						fixed Phi = phi(PreviousSweepHitUnitDirection) + fixed::half_pi() + 1_fx / 32_fx;
-						TargetDirection = phiToDir(Phi);
-					}
-					else
-					{
-						fixed Phi = phi(PreviousSweepHitUnitDirection) - fixed::half_pi() - 1_fx / 32_fx;
-						TargetDirection = phiToDir(Phi);
-					}
-				}
-			}
-		
-			int ClosestSweepHitUnit = -1;
-			fixed ClosestSweepHitTime = 1_fx;
-
-			for(int NearbyUnitID : NearbyUnits)
-			{			
-				fixed SweepHitTime = CalculateSweep(TargetDirection, MoveSpeed * RemainingTime, Units[0].Position, Units[0].Radius, Units[NearbyUnitID].Position, Units[NearbyUnitID].Radius);
-
-				if (SweepHitTime < ClosestSweepHitTime)
+				if (i != k)
 				{
-					ClosestSweepHitTime = SweepHitTime;
-					ClosestSweepHitUnit = NearbyUnitID;
+					FVec DiffPosition = Units[i].Position - CurrentUnit.Position;
+
+					fixed NearbyDistance = Units[i].Radius + CurrentUnit.Radius + MoveSpeed * DeltaTime;
+
+					if (fpm::abs(DiffPosition.X) <= NearbyDistance && fpm::abs(DiffPosition.Y) <= NearbyDistance)
+					{
+						NearbyUnits.Add(i);
+					}
 				}
 			}
 
-			if (ClosestSweepHitUnit != -1)
+			fixed RemainingTime = DeltaTime;
+
+			int PreviousSweepHitUnit = -1;
+			int Iterations = 0;
+
+			while (RemainingTime > 0_fx && Iterations < 2)
 			{
-				Units[0].Position.X += ClosestSweepHitTime * MoveSpeed * RemainingTime * TargetDirection.X;
-				Units[0].Position.Y += ClosestSweepHitTime * MoveSpeed * RemainingTime * TargetDirection.Y;
-				RemainingTime -= RemainingTime * ClosestSweepHitTime;
-				PreviousSweepHitUnit = ClosestSweepHitUnit;
-			}
-			else
-			{
-				Units[0].Position.X += MoveSpeed * RemainingTime * TargetDirection.X;
-				Units[0].Position.Y += MoveSpeed * RemainingTime * TargetDirection.Y;
-				RemainingTime = 0_fx;
-				PreviousSweepHitUnit = -1;
+				Iterations++;
+			
+				FVec TargetDifference = TargetPosition - CurrentUnit.Position;
+
+				if (length(TargetDifference) <= 10_fx)
+				{
+					CurrentUnit.Moving = false;
+					break;
+				}
+			
+				FVec TargetDirection = normalize(TargetDifference);
+
+				if (PreviousSweepHitUnit != -1)
+				{
+					FVec PreviousSweepHitUnitDirection = normalize(Units[PreviousSweepHitUnit].Position - CurrentUnit.Position);
+					fixed PreviousSweepHitUnitDirectionPhi = atan2(PreviousSweepHitUnitDirection.Y, PreviousSweepHitUnitDirection.X);
+
+					if ((TargetDirection | PreviousSweepHitUnitDirection) > 0_fx)
+					{				
+						if ((TargetDirection | RotatePlus90(PreviousSweepHitUnitDirection)) > 0_fx)
+						{
+							fixed Phi = phi(PreviousSweepHitUnitDirection) + fixed::half_pi() + 1_fx / 32_fx;
+							TargetDirection = phiToDir(Phi);
+						}
+						else
+						{
+							fixed Phi = phi(PreviousSweepHitUnitDirection) - fixed::half_pi() - 1_fx / 32_fx;
+							TargetDirection = phiToDir(Phi);
+						}
+					}
+				}
+			
+				int ClosestSweepHitUnit = -1;
+				fixed ClosestSweepHitTime = 1_fx;
+
+				for(int NearbyUnitID : NearbyUnits)
+				{			
+					fixed SweepHitTime = CalculateSweep(TargetDirection, MoveSpeed * RemainingTime, CurrentUnit.Position, CurrentUnit.Radius, Units[NearbyUnitID].Position, Units[NearbyUnitID].Radius);
+
+					if (SweepHitTime < ClosestSweepHitTime)
+					{
+						ClosestSweepHitTime = SweepHitTime;
+						ClosestSweepHitUnit = NearbyUnitID;
+					}
+				}
+
+				if (ClosestSweepHitUnit != -1)
+				{
+					CurrentUnit.Position.X += ClosestSweepHitTime * MoveSpeed * RemainingTime * TargetDirection.X;
+					CurrentUnit.Position.Y += ClosestSweepHitTime * MoveSpeed * RemainingTime * TargetDirection.Y;
+					RemainingTime -= RemainingTime * ClosestSweepHitTime;
+					PreviousSweepHitUnit = ClosestSweepHitUnit;
+				}
+				else
+				{
+					CurrentUnit.Position.X += MoveSpeed * RemainingTime * TargetDirection.X;
+					CurrentUnit.Position.Y += MoveSpeed * RemainingTime * TargetDirection.Y;
+					RemainingTime = 0_fx;
+					PreviousSweepHitUnit = -1;
+				}
 			}
 		}
 	}
@@ -121,10 +128,27 @@ FVector2D FLockstepSimulation::GetUnitPosition(int UnitID) const
 	return FVector2D(static_cast<float>(Position.X), static_cast<float>(Position.Y));
 }
 
-void FLockstepSimulation::ProcessMoveCommand(int X, int Y)
+void FLockstepSimulation::ProcessMoveCommand(const FLockstepMoveCommand& MoveCommand)
 {
-	Units[0].Moving = true;
-	Units[0].TargetPosition = FVec{fixed::from_raw_value(X), fixed::from_raw_value(Y)};
+	FVec SelectedPosition = FVec{fixed::from_raw_value(MoveCommand.X), fixed::from_raw_value(MoveCommand.Y)};
+	
+	FVec UnitCenterPosition{0_fx, 0_fx};
+
+	fixed UnitCount = fixed(MoveCommand.Units.Num());
+
+	for(uint16 UnitID : MoveCommand.Units)
+	{		
+		UnitCenterPosition.X += (Units[UnitID].Position.X / UnitCount);
+		UnitCenterPosition.Y += (Units[UnitID].Position.Y / UnitCount);
+	}
+
+	FVec Delta = SelectedPosition - UnitCenterPosition;
+
+	for(uint16 UnitID : MoveCommand.Units)
+	{
+		Units[UnitID].Moving = true;
+		Units[UnitID].TargetPosition = Units[UnitID].Position + Delta;
+	}
 }
 
 fixed FLockstepSimulation::CalculateSweep(FVec Dir, fixed Distance, FVec P0, fixed R0, FVec P1, fixed R1)

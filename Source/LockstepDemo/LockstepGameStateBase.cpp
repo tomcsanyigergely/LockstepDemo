@@ -1,24 +1,25 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "LockstepGameStateBase.h"
+
+#include "LockstepUnitActor.h"
 
 void ALockstepGameStateBase::LockstepTick_Implementation(uint16 TickIndex, const TArray<FLockstepMoveCommand>& MoveCommands)
 {
 	if (!GetWorld()->IsServer())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Received Tick: %d"), TickIndex)
+		/*UE_LOG(LogTemp, Warning, TEXT("Received Tick: %d"), TickIndex)
 
 		for (const FLockstepMoveCommand& MoveCommand : MoveCommands) 
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Received MoveCommand: %d %f %f"), MoveCommand.PlayerId, MoveCommand.X, MoveCommand.Y)
-		}
+		}*/
 
 		SafeInitializeSimulation();
 
-		for(auto Command : MoveCommands)
+		for(auto MoveCommand : MoveCommands)
 		{
-			Simulation.ProcessMoveCommand(Command.X, Command.Y);
+			Simulation.ProcessMoveCommand(MoveCommand);
 		}
 
 		Simulation.Tick();
@@ -41,9 +42,8 @@ void ALockstepGameStateBase::BeginPlay()
 		for(int i = 0; i < Simulation.GetUnitCount(); i++)
 		{
 			FVector2D UnitLocation = Simulation.GetUnitPosition(i);
-			FVector SpawnLocation = FVector(UnitLocation.X, UnitLocation.Y, 0);
-			FRotator SpawnRotation = FRotator::ZeroRotator;
-			AActor* UnitActor = GetWorld()->SpawnActor(UnitActorClass, &SpawnLocation, &SpawnRotation);
+			ALockstepUnitActor* UnitActor = GetWorld()->SpawnActor<ALockstepUnitActor>(UnitActorClass, FVector(UnitLocation.X, UnitLocation.Y, 0), FRotator::ZeroRotator);
+			UnitActor->UnitID = i;
 			UnitActors.Add(UnitActor);
 		}
 	}
